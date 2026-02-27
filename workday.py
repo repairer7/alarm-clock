@@ -10,7 +10,7 @@ def check_and_notify():
     if is_workday(today):
         print(f"日期: {today} 是工作日 (含调休)，准备发送通知...")
 
-        bark_host = os.environ.get("BARK_HOST")  # 例如 bark.imtsui.com
+        bark_host = os.environ.get("BARK_HOST")  # 建议只填域名，比如 bark.imtsui.com
         bark_key = os.environ.get("BARK_KEY")
         bark_title = "持续响铃"
 
@@ -18,15 +18,14 @@ def check_and_notify():
             print("环境变量 BARK_HOST 或 BARK_KEY 未配置，无法发送通知。")
             return
 
-        # 自动补全 https://
-        if not bark_host.startswith("http://") and not bark_host.startswith("https://"):
-            bark_host = "https://" + bark_host
+        # 只保留主机部分，去掉前后的空格和斜杠
+        bark_host = bark_host.strip().lstrip("/").rstrip("/")
 
-        # 去掉末尾的 /
-        bark_host = bark_host.rstrip("/")
+        # 无论你 Secrets 里写没写 https://，这里都强制加上
+        bark_url = f"https://{bark_host}/{bark_key}/{quote(bark_title)}"
 
-        bark_url = f"{bark_host}/{bark_key}/{quote(bark_title)}"
-        print(f"即将请求的 Bark URL: {bark_url.replace(bark_key, '***')}")
+        # 打印时把 key 打码，方便你确认 URL 结构
+        print("即将请求的 Bark URL:", bark_url.replace(bark_key, "***"))
 
         params = {
             "call": "1",
