@@ -10,7 +10,7 @@ def check_and_notify():
     if is_workday(today):
         print(f"日期: {today} 是工作日 (含调休)，准备发送通知...")
 
-        bark_host = os.environ.get("BARK_HOST")  # 建议只填 bark.imtsui.com
+        bark_host = os.environ.get("BARK_HOST")  
         bark_key = os.environ.get("BARK_KEY")
         bark_title = "持续响铃"
 
