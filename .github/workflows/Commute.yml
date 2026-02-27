@@ -1,4 +1,4 @@
-name: Commute Check
+name: Commute Time Check
 
 on:
   workflow_dispatch:
@@ -12,13 +12,10 @@ jobs:
       BAIDU_AK: ${{ secrets.BAIDU_AK }}
       BARK_HOST: ${{ secrets.BARK_HOST }}
       BARK_KEY: ${{ secrets.BARK_KEY }}
+      ORIGIN_ADDR: ${{ secrets.ORIGIN_ADDR }}
+      DESTINATION_ADDR: ${{ secrets.DESTINATION_ADDR }}
 
     steps:
-      - name: Set timezone to Asia/Shanghai
-        run: |
-          sudo timedatectl set-timezone Asia/Shanghai
-          date
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -29,7 +26,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install requests chinese_calendar
 
       - name: Run commute checker
