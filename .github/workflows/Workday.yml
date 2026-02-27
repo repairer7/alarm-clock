@@ -1,4 +1,4 @@
-name: Workday check
+name: Workday Check
 
 on:
   workflow_dispatch:
