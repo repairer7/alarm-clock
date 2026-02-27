@@ -1,4 +1,4 @@
-name: Commute Time Check
+name: Commute Check
 
 on:
   workflow_dispatch:
