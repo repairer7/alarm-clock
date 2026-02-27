@@ -88,7 +88,7 @@ def check_and_notify():
     sec, mins = get_drive_time(origin, destination)
     print(f"当前驾车时间：{mins} 分钟")
 
-    if mins > 20:
+    if mins > 40:
         print("通勤时间超过 40 分钟，发送 Bark 通知...")
         send_bark(f"当前通勤时间：{mins} 分钟，已超过阈值 40 分钟")
     else:
