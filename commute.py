@@ -5,12 +5,12 @@ from chinese_calendar import is_workday
 from urllib.parse import quote
 
 # ======= 从环境变量读取配置 =======
-AK = os.environ.get("BAIDU_AK")  # 百度地图 AK
+AK = os.environ.get("BAIDU_AK")          # 百度地图 AK
 BARK_HOST = os.environ.get("BARK_HOST")  # 例如 bark.imtsui.com
 BARK_KEY = os.environ.get("BARK_KEY")    # Bark key
 
-origin_addr = "苏州市相城区绿地都会雅苑"
-destination_addr = "苏州市燃气大厦"
+origin_addr = os.environ.get("ORIGIN_ADDR")          # 出发地
+destination_addr = os.environ.get("DESTINATION_ADDR")  # 目的地
 
 
 # ======= 地址转坐标 =======
