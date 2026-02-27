@@ -1,4 +1,4 @@
-name: Workday Bark Notify
+name: Workday check
 
 on:
   workflow_dispatch:
