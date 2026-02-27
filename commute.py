@@ -1,15 +1,16 @@
 import datetime
+import os
 import requests
 from chinese_calendar import is_workday
+from urllib.parse import quote
 
-# ======= 配置 =======
-AK = "C3Rv5rELHCBrbwKtCC8byAHK9KVflP11"
+# ======= 从环境变量读取配置 =======
+AK = os.environ.get("BAIDU_AK")  # 百度地图 AK
+BARK_HOST = os.environ.get("BARK_HOST")  # 例如 bark.imtsui.com
+BARK_KEY = os.environ.get("BARK_KEY")    # Bark key
 
 origin_addr = "苏州市相城区绿地都会雅苑"
 destination_addr = "苏州市燃气大厦"
-
-# Bark 推送 URL
-BARK_URL = "https://bark.imtsui.com/KJrVzNCWPKdfV9ykYWsb2k/%E6%8C%81%E7%BB%AD%E5%93%8D%E9%93%83?call=1&level=critical&group=Alarm&isArchive=0"
 
 
 # ======= 地址转坐标 =======
@@ -20,14 +21,13 @@ def geocode(address):
         "output": "json",
         "ak": AK
     }
-    r = requests.get(url, params=params)
+    r = requests.get(url, params=params, timeout=10)
     data = r.json()
+
     if data["status"] != 0:
         raise Exception(f"Geocoding failed: {data}")
 
     loc = data["result"]["location"]
-
-    # DirectionLite 要求 lat,lng
     return f"{loc['lat']},{loc['lng']}"
 
 
@@ -39,7 +39,7 @@ def get_drive_time(origin, destination):
         "destination": destination,
         "ak": AK
     }
-    r = requests.get(url, params=params)
+    r = requests.get(url, params=params, timeout=10)
     data = r.json()
 
     if data["status"] != 0:
@@ -54,8 +54,17 @@ def get_drive_time(origin, destination):
 
 # ======= Bark 推送 =======
 def send_bark(msg):
+    if not BARK_HOST or not BARK_KEY:
+        print("BARK_HOST 或 BARK_KEY 未配置，无法发送 Bark 通知。")
+        return
+
+    host = BARK_HOST.strip().lstrip("/").rstrip("/")
+    bark_url = f"https://{host}/{BARK_KEY}/{quote('通勤提醒')}"
+
+    print("即将请求的 Bark URL:", bark_url.replace(BARK_KEY, "***"))
+
     try:
-        response = requests.get(BARK_URL, params={"body": msg}, timeout=10)
+        response = requests.get(bark_url, params={"body": msg}, timeout=10)
         if response.status_code == 200:
             print("Bark 通知发送成功！")
         else:
@@ -68,22 +77,18 @@ def send_bark(msg):
 def check_and_notify():
     today = datetime.date.today()
 
-    # 1. 判断是否工作日
     if not is_workday(today):
         print(f"日期: {today} 是休息日，无需检查通勤。")
         return
 
     print(f"日期: {today} 是工作日，开始检查通勤时间...")
 
-    # 2. 获取坐标
     origin = geocode(origin_addr)
     destination = geocode(destination_addr)
 
-    # 3. 获取驾车时间
     sec, mins = get_drive_time(origin, destination)
     print(f"当前驾车时间：{mins} 分钟")
 
-    # 4. 判断是否超过 40 分钟
     if mins > 40:
         print("通勤时间超过 40 分钟，发送 Bark 通知...")
         send_bark(f"通勤时间过长：{mins} 分钟")
