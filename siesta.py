@@ -1,35 +1,50 @@
 import datetime
-import requests
+import os
 import json
+import requests
 from chinese_calendar import is_workday
+from urllib.parse import quote
 
 def check_and_notify():
-    # 1. 获取今天的日期
     today = datetime.date.today()
-    #today = datetime.date.today() + datetime.timedelta(days=1)
 
-    # 2. 判断是否是工作日
     if is_workday(today):
         print(f"日期: {today} 是工作日 (含调休)，继续检查距离...")
 
-        # 3. 读取 /opt/workday/distance.json
+        # 读取仓库内的 distance.json
         try:
-            with open("/opt/workday/distance.json", "r", encoding="utf-8") as f:
+            with open("distance.json", "r", encoding="utf-8") as f:
                 data = json.load(f)
                 distance = data.get("distance", None)
         except Exception as e:
             print(f"读取 distance.json 出错: {e}")
             return
 
-        # 4. 判断距离是否小于 1
         if distance is not None and distance < 1:
             print(f"距离: {distance} < 1，准备发送通知...")
 
-            # 5. 执行 Bark 通知
-            bark_url = "https://bark.imtsui.com/KJrVzNCWPKdfV9ykYWsb2k/%E6%8C%81%E7%BB%AD%E5%93%8D%E9%93%83?call=1&level=critical&group=Alarm&isArchive=0"
+            # 从 Secrets 读取 Bark 配置
+            bark_host = os.environ.get("BARK_HOST")
+            bark_key = os.environ.get("BARK_KEY")
+            bark_title = "持续响铃"
+
+            if not bark_host or not bark_key:
+                print("BARK_HOST 或 BARK_KEY 未配置，无法发送通知。")
+                return
+
+            # 清洗 host
+            bark_host = bark_host.strip().lstrip("/").rstrip("/")
+
+            # 强制加 https://
+            bark_url = f"https://{bark_host}/{bark_key}/{quote(bark_title)}"
+
+            print("即将请求的 Bark URL:", bark_url.replace(bark_key, "***"))
+
             params = {
                 "call": "1",
-                "level": "critical"
+                "level": "critical",
+                "group": "Alarm",
+                "isArchive": "0",
             }
 
             try:
