@@ -1,0 +1,37 @@
+name: Commute Time Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  commute:
+    runs-on: ubuntu-latest
+
+    env:
+      TZ: Asia/Shanghai
+      BAIDU_AK: ${{ secrets.BAIDU_AK }}
+      BARK_HOST: ${{ secrets.BARK_HOST }}
+      BARK_KEY: ${{ secrets.BARK_KEY }}
+
+    steps:
+      - name: Set timezone to Asia/Shanghai
+        run: |
+          sudo timedatectl set-timezone Asia/Shanghai
+          date
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests chinese_calendar
+
+      - name: Run commute checker
+        run: |
+          python commute.py
