@@ -10,7 +10,7 @@ def check_and_notify():
     if is_workday(today):
         print(f"日期: {today} 是工作日 (含调休)，准备发送通知...")
 
-        bark_host = os.environ.get("BARK_HOST")
+        bark_host = os.environ.get("BARK_HOST")  # 例如 bark.imtsui.com
         bark_key = os.environ.get("BARK_KEY")
         bark_title = "持续响铃"
 
@@ -18,7 +18,15 @@ def check_and_notify():
             print("环境变量 BARK_HOST 或 BARK_KEY 未配置，无法发送通知。")
             return
 
+        # 自动补全 https://
+        if not bark_host.startswith("http://") and not bark_host.startswith("https://"):
+            bark_host = "https://" + bark_host
+
+        # 去掉末尾的 /
+        bark_host = bark_host.rstrip("/")
+
         bark_url = f"{bark_host}/{bark_key}/{quote(bark_title)}"
+        print(f"即将请求的 Bark URL: {bark_url.replace(bark_key, '***')}")
 
         params = {
             "call": "1",
