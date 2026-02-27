@@ -33,4 +33,4 @@ jobs:
 
       - name: Run distance checker
         run: |
-          python workday_distance.py
+          python siesta.py
