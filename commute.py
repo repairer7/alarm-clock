@@ -4,16 +4,13 @@ import requests
 from chinese_calendar import is_workday
 from urllib.parse import quote
 
-# ======= 从环境变量读取配置 =======
-AK = os.environ.get("BAIDU_AK")          # 百度地图 AK
-BARK_HOST = os.environ.get("BARK_HOST") 
-BARK_KEY = os.environ.get("BARK_KEY") 
+AK = os.environ.get("BAIDU_AK")
+BARK_HOST = os.environ.get("BARK_HOST")
+BARK_KEY = os.environ.get("BARK_KEY")
 
-origin_addr = os.environ.get("ORIGIN_ADDR")          # 出发地
-destination_addr = os.environ.get("DESTINATION_ADDR")  # 目的地
+origin_addr = os.environ.get("ORIGIN_ADDR")
+destination_addr = os.environ.get("DESTINATION_ADDR")
 
-
-# ======= 地址转坐标 =======
 def geocode(address):
     url = "https://api.map.baidu.com/geocoding/v3/"
     params = {
@@ -30,8 +27,6 @@ def geocode(address):
     loc = data["result"]["location"]
     return f"{loc['lat']},{loc['lng']}"
 
-
-# ======= 驾车路线规划 =======
 def get_drive_time(origin, destination):
     url = "https://api.map.baidu.com/directionlite/v1/driving"
     params = {
@@ -51,8 +46,6 @@ def get_drive_time(origin, destination):
 
     return duration_sec, duration_min
 
-
-# ======= Bark 推送 =======
 def send_bark(msg):
     if not BARK_HOST or not BARK_KEY:
         print("BARK_HOST 或 BARK_KEY 未配置，无法发送 Bark 通知。")
@@ -63,8 +56,16 @@ def send_bark(msg):
 
     print("即将请求的 Bark URL:", bark_url.replace(BARK_KEY, "***"))
 
+    params = {
+        "body": msg,
+        "call": "1",
+        "level": "critical",
+        "group": "Alarm",
+        "isArchive": "0",
+    }
+
     try:
-        response = requests.get(bark_url, params={"body": msg}, timeout=10)
+        response = requests.get(bark_url, params=params, timeout=10)
         if response.status_code == 200:
             print("Bark 通知发送成功！")
         else:
@@ -72,8 +73,6 @@ def send_bark(msg):
     except Exception as e:
         print(f"Bark 请求错误: {e}")
 
-
-# ======= 主流程 =======
 def check_and_notify():
     today = datetime.date.today()
 
@@ -89,12 +88,11 @@ def check_and_notify():
     sec, mins = get_drive_time(origin, destination)
     print(f"当前驾车时间：{mins} 分钟")
 
-    if mins > 20:
+    if mins > 40:
         print("通勤时间超过 40 分钟，发送 Bark 通知...")
-        send_bark(f"通勤时间过长：{mins} 分钟")
+        send_bark(f"当前通勤时间：{mins} 分钟，已超过阈值 40 分钟")
     else:
         print("通勤时间正常，无需通知。")
-
 
 if __name__ == "__main__":
     check_and_notify()
