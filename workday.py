@@ -4,95 +4,47 @@ import requests
 from chinese_calendar import is_workday
 from urllib.parse import quote
 
-AK = os.environ.get("BAIDU_AK")
-BARK_HOST = os.environ.get("BARK_HOST")
-BARK_KEY = os.environ.get("BARK_KEY")
-
-origin_addr = os.environ.get("ORIGIN_ADDR")
-destination_addr = os.environ.get("DESTINATION_ADDR")
-
-def geocode(address):
-    url = "https://api.map.baidu.com/geocoding/v3/"
-    params = {
-        "address": address,
-        "output": "json",
-        "ak": AK
-    }
-    r = requests.get(url, params=params, timeout=10)
-    data = r.json()
-
-    if data["status"] != 0:
-        raise Exception(f"Geocoding failed: {data}")
-
-    loc = data["result"]["location"]
-    return f"{loc['lat']},{loc['lng']}"
-
-def get_drive_time(origin, destination):
-    url = "https://api.map.baidu.com/directionlite/v1/driving"
-    params = {
-        "origin": origin,
-        "destination": destination,
-        "ak": AK
-    }
-    r = requests.get(url, params=params, timeout=10)
-    data = r.json()
-
-    if data["status"] != 0:
-        raise Exception(f"Direction API failed: {data}")
-
-    route = data["result"]["routes"][0]
-    duration_sec = route["duration"]
-    duration_min = round(duration_sec / 60, 1)
-
-    return duration_sec, duration_min
-
-def send_bark(msg):
-    if not BARK_HOST or not BARK_KEY:
-        print("BARK_HOST 或 BARK_KEY 未配置，无法发送 Bark 通知。")
-        return
-
-    host = BARK_HOST.strip().lstrip("/").rstrip("/")
-    bark_url = f"https://{host}/{BARK_KEY}/{quote('通勤提醒')}"
-
-    print("即将请求的 Bark URL:", bark_url.replace(BARK_KEY, "***"))
-
-    params = {
-        "body": msg,
-        "call": "1",
-        "level": "critical",
-        "group": "Alarm",
-        "isArchive": "0",
-    }
-
-    try:
-        response = requests.get(bark_url, params=params, timeout=10)
-        if response.status_code == 200:
-            print("Bark 通知发送成功！")
-        else:
-            print(f"Bark 通知失败，状态码: {response.status_code}")
-    except Exception as e:
-        print(f"Bark 请求错误: {e}")
-
 def check_and_notify():
     today = datetime.date.today()
 
-    if not is_workday(today):
-        print(f"日期: {today} 是休息日，无需检查通勤。")
-        return
+    if is_workday(today):
+        print(f"日期: {today} 是工作日 (含调休)，准备发送通知...")
 
-    print(f"日期: {today} 是工作日，开始检查通勤时间...")
+        bark_host = os.environ.get("BARK_HOST")  # 建议只填域名，比如 bark.imtsui.com
+        bark_key = os.environ.get("BARK_KEY")
+        bark_title = "持续响铃"
 
-    origin = geocode(origin_addr)
-    destination = geocode(destination_addr)
+        if not bark_host or not bark_key:
+            print("环境变量 BARK_HOST 或 BARK_KEY 未配置，无法发送通知。")
+            return
 
-    sec, mins = get_drive_time(origin, destination)
-    print(f"当前驾车时间：{mins} 分钟")
+        # 只保留主机部分，去掉前后的空格和斜杠
+        bark_host = bark_host.strip().lstrip("/").rstrip("/")
 
-    if mins > 20:
-        print("通勤时间超过 40 分钟，发送 Bark 通知...")
-        send_bark(f"当前通勤时间：{mins} 分钟，已超过阈值 40 分钟")
+        # 无论你 Secrets 里写没写 https://，这里都强制加上
+        bark_url = f"https://{bark_host}/{bark_key}/{quote(bark_title)}"
+
+        # 打印时把 key 打码，方便你确认 URL 结构
+        print("即将请求的 Bark URL:", bark_url.replace(bark_key, "***"))
+
+        params = {
+            "call": "1",
+            "level": "critical",
+            "group": "Alarm",
+            "isArchive": "0",
+        }
+
+        try:
+            response = requests.get(bark_url, params=params, timeout=10)
+            if response.status_code == 200:
+                print("通知发送成功！")
+            else:
+                print(f"通知发送失败，状态码: {response.status_code}，响应内容: {response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"请求发生错误: {e}")
+
     else:
-        print("通勤时间正常，无需通知。")
+        print(f"日期: {today} 是休息日或法定节假日，无需工作。")
 
 if __name__ == "__main__":
     check_and_notify()
