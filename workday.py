@@ -1,5 +1,6 @@
 import datetime
 import os
+import json
 import requests
 from chinese_calendar import is_workday
 from urllib.parse import quote
@@ -8,7 +9,28 @@ def check_and_notify():
     today = datetime.date.today()
 
     if is_workday(today):
-        print(f"日期: {today} 是工作日 (含调休)，准备发送通知...")
+        print(f"日期: {today} 是工作日 (含调休)，准备检查闹铃开关...")
+
+        # --- 新增：读取 whetheralarm.json 状态 ---
+        alarm_switch = "yes"  # 默认值，如果文件缺失或读取失败，默认允许响铃
+        try:
+            if os.path.exists("whetheralarm.json"):
+                with open("whetheralarm.json", "r", encoding="utf-8") as f:
+                    alarm_data = json.load(f)
+                    # 转为字符串、去空格、转小写，提高容错率
+                    alarm_switch = str(alarm_data.get("whetheralarm", "yes")).strip().lower()
+            else:
+                print("未找到 whetheralarm.json，将默认执行响铃逻辑。")
+        except Exception as e:
+            print(f"读取 whetheralarm.json 出错: {e}，将默认执行响铃逻辑。")
+
+        # 如果开关被明确设置为 no，则直接拦截
+        if alarm_switch == "no":
+            print("检测到 whetheralarm.json 设置为 'no'，已关闭本次闹铃通知。")
+            return
+        # ----------------------------------------
+
+        print("闹铃开关已开启，准备发送通知...")
 
         bark_host = os.environ.get("BARK_HOST")  # 建议只填域名，比如 bark.imtsui.com
         bark_key = os.environ.get("BARK_KEY")
