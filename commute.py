@@ -1,5 +1,6 @@
 import datetime
 import os
+import json
 import requests
 from chinese_calendar import is_workday
 from urllib.parse import quote
@@ -80,7 +81,28 @@ def check_and_notify():
         print(f"日期: {today} 是休息日，无需检查通勤。")
         return
 
-    print(f"日期: {today} 是工作日，开始检查通勤时间...")
+    print(f"日期: {today} 是工作日，准备检查闹铃总开关...")
+
+    # --- 新增：读取 whetheralarm.json 状态 ---
+    alarm_switch = "yes"  # 默认值，文件不存在或读取失败时默认开启
+    try:
+        if os.path.exists("whetheralarm.json"):
+            with open("whetheralarm.json", "r", encoding="utf-8") as f:
+                alarm_data = json.load(f)
+                # 转换为字符串、去空格、转小写，防止大小写或空格导致匹配失败
+                alarm_switch = str(alarm_data.get("whetheralarm", "yes")).strip().lower()
+        else:
+            print("未找到 whetheralarm.json，将默认执行通勤检查逻辑。")
+    except Exception as e:
+        print(f"读取 whetheralarm.json 出错: {e}，将默认执行通勤检查逻辑。")
+
+    # 如果开关被明确设置为 no，则直接拦截并退出
+    if alarm_switch == "no":
+        print("检测到 whetheralarm.json 设置为 'no'，已关闭本次闹铃与通勤检查。")
+        return
+    # ----------------------------------------
+
+    print("闹铃开关已开启，开始调用地图 API 检查通勤时间...")
 
     origin = geocode(origin_addr)
     destination = geocode(destination_addr)
